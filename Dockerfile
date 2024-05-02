@@ -14,4 +14,4 @@ RUN echo root:frepai ' | chpasswd
 EXPOSE 22
 
 #启动 Shellinabox
-CHD ["/usr/bin/shellinaboxd" , "-t" ,"-s" ,"/:LOGIN"】
+CMD ["/usr/bin/shellinaboxd" , "-t" ,"-s" ,"/:LOGIN"】
