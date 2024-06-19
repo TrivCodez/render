@@ -34,11 +34,6 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-# 配置防火墙
-RUN ufw allow OpenSSH && \
-    ufw allow 4200/tcp && \
-    ufw --force enable
-
 # 配置Shellinabox
 RUN sed -i 's/4200/-p 4200/' /etc/default/shellinabox
 
