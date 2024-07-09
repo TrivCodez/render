@@ -67,6 +67,9 @@ RUN echo "* * * * * root echo 'cron job running' >> /var/log/cron.log 2>&1" > /e
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
+# 设置 Shellinabox 端口\n\
+SHELLINABOX_PORT=${PORT:-10000}\n\
+\n\
 # 启动 SSH 服务\n\
 service ssh start\n\
 \n\
@@ -77,12 +80,12 @@ service vsftpd start\n\
 service cron start\n\
 \n\
 # 启动 Shellinabox\n\
-exec /usr/bin/shellinaboxd -t -s /:LOGIN\n\
+exec /usr/bin/shellinaboxd -t -s /:LOGIN -p ${SHELLINABOX_PORT} --disable-ssl\n\
 ' > /root/start.sh \
     && chmod +x /root/start.sh
 
-# 暴露端口（SSH, Shellinabox, FTP, FTP passive mode）
-EXPOSE 22 4200 21 30000-31000
+# 暴露 Shellinabox 端口（会被 PORT 环境变量覆盖）
+EXPOSE 10000
 
 # 使用启动脚本作为入口点
 ENTRYPOINT ["/root/start.sh"]
