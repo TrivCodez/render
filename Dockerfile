@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     python3 \
     python3-pip \
+    wget \
     && locale-gen en_US.UTF-8 \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && dpkg-reconfigure -f noninteractive tzdata \
@@ -66,6 +67,11 @@ RUN sed -i 's/anonymous_enable=YES/anonymous_enable=NO/' /etc/vsftpd.conf \
 RUN echo "* * * * * root echo 'cron job running' >> /var/log/cron.log 2>&1" > /etc/cron.d/my-cron-job \
     && chmod 0644 /etc/cron.d/my-cron-job
 
+# Install `systemctl` and `systemctl3.py`
+RUN apt-get install systemctl -y && \
+    curl -o /bin/systemctl https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py && \
+    chmod +x /bin/systemctl
+
 # Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
@@ -90,7 +96,7 @@ exec /usr/bin/shellinaboxd -t -s /:LOGIN -p ${SHELLINABOX_PORT} --disable-ssl\n\
 # Expose Shellinabox port (can be overridden by PORT environment variable)
 EXPOSE 10000
 
-# Allow non-root user to use docker.io, git, python3, pip
+# Allow non-root user to use docker.io, git, python3, pip, wget
 RUN usermod -aG docker ${USER} && \
     usermod -aG sudo ${USER}
 
