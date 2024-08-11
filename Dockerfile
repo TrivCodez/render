@@ -1,25 +1,24 @@
-# 使用 Ubuntu 22.04 作为基础镜像
 FROM ubuntu:22.04
 
-# 设置环境变量以减少交互式提示
+# Set environment variables for non-interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 设置时区
+# Set timezone
 ENV TZ=UTC
 
-# 设置语言环境
+# Set locale
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-# 创建非 root 用户
+# Create non-root user
 ARG USER=appuser
 ARG UID=1000
 ARG GID=1000
 ARG USER_PASSWORD=userpassword
 ARG ROOT_PASSWORD=Aa.cbbdft123
 
-# 安装常用工具、Shellinabox、SSH 服务器和 FTP 服务器，设置语言环境，清理缓存
+# Install required packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     shellinabox \
     openssh-server \
@@ -33,6 +32,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     locales \
     tzdata \
     sudo \
+    docker.io \
+    git \
+    python3 \
+    python3-pip \
     && locale-gen en_US.UTF-8 \
     && ln -fs /usr/share/zoneinfo/${TZ} /etc/localtime \
     && dpkg-reconfigure -f noninteractive tzdata \
@@ -44,12 +47,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# 配置 SSH
+# Configure SSH
 RUN mkdir /var/run/sshd \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# 配置 FTP
+# Configure FTP
 RUN sed -i 's/anonymous_enable=YES/anonymous_enable=NO/' /etc/vsftpd.conf \
     && sed -i 's/#local_enable=YES/local_enable=YES/' /etc/vsftpd.conf \
     && sed -i 's/#write_enable=YES/write_enable=YES/' /etc/vsftpd.conf \
@@ -59,33 +62,37 @@ RUN sed -i 's/anonymous_enable=YES/anonymous_enable=NO/' /etc/vsftpd.conf \
     && echo "pasv_min_port=30000" >> /etc/vsftpd.conf \
     && echo "pasv_max_port=31000" >> /etc/vsftpd.conf
 
-# 配置 cron 作业
+# Configure cron job
 RUN echo "* * * * * root echo 'cron job running' >> /var/log/cron.log 2>&1" > /etc/cron.d/my-cron-job \
     && chmod 0644 /etc/cron.d/my-cron-job
 
-# 创建启动脚本
+# Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
-# 设置 Shellinabox 端口\n\
+# Set Shellinabox port\n\
 SHELLINABOX_PORT=${PORT:-10000}\n\
 \n\
-# 启动 SSH 服务\n\
+# Start SSH service\n\
 service ssh start\n\
 \n\
-# 启动 FTP 服务\n\
+# Start FTP service\n\
 service vsftpd start\n\
 \n\
-# 启动 cron 服务\n\
+# Start cron service\n\
 service cron start\n\
 \n\
-# 启动 Shellinabox\n\
+# Start Shellinabox\n\
 exec /usr/bin/shellinaboxd -t -s /:LOGIN -p ${SHELLINABOX_PORT} --disable-ssl\n\
 ' > /root/start.sh \
     && chmod +x /root/start.sh
 
-# 暴露 Shellinabox 端口（会被 PORT 环境变量覆盖）
+# Expose Shellinabox port (can be overridden by PORT environment variable)
 EXPOSE 10000
 
-# 使用启动脚本作为入口点
+# Allow non-root user to use docker.io, git, python3, pip
+RUN usermod -aG docker ${USER} && \
+    usermod -aG sudo ${USER}
+
+# Use startup script as entrypoint
 ENTRYPOINT ["/root/start.sh"]
